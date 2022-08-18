@@ -24,13 +24,14 @@ var __importStar = (this && this.__importStar) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const Post_1 = require("./entities/Post");
+const User_1 = require("./entities/User");
 const constants_1 = require("./constants");
 const path = __importStar(require("path"));
 const mikroconfig = {
     migrations: {
         path: path.join(__dirname, "./migrations"),
     },
-    entities: [Post_1.Post],
+    entities: [Post_1.Post, User_1.User],
     dbName: "lireddit",
     type: "postgresql",
     debug: !constants_1.__prod__,
