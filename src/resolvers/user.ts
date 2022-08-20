@@ -6,6 +6,7 @@ import {
   InputType,
   Mutation,
   ObjectType,
+  Query,
   Resolver,
 } from "type-graphql";
 import { User } from "../entities/User";
@@ -40,10 +41,19 @@ class UserResponse {
 
 @Resolver()
 export class UserResolver {
+  @Query(() => User, { nullable: true })
+  async me(@Ctx() { req, em }: MyContext) {
+    //  You are not logged in
+    if (!req.session.userId) {
+      return null;
+    }
+    const user = await em.findOne(User, { id: req.session.userId });
+    return user;
+  }
   @Mutation(() => UserResponse)
   async register(
     @Arg("options") options: UsernamePasswordInput,
-    @Ctx() { em }: MyContext
+    @Ctx() { em, req }: MyContext
   ): Promise<UserResponse> {
     if (options.username.length <= 2) {
       return {
@@ -73,7 +83,7 @@ export class UserResolver {
     try {
       await em.persistAndFlush(user);
     } catch (e) {
-      // duplicate username errror
+      // duplicate username error
       if (e.code === "23505" || e.detail.includes("already exists")) {
         return {
           errors: [
@@ -85,13 +95,44 @@ export class UserResolver {
         };
       }
     }
+
+    //Store userId session
+    //this will set a cookie on the user to keep the logged in
+    req.session.userId = user.id;
+    /*
+     * {userId: 1} -> send that to redis
+     * * *
+     * redis is a key value store*
+     * on redis it will look like this*
+     * keyName: sess:qweokdfsdfscvih  value:{cookie:..., userId:1}
+     *
+     * * *
+     *express-session will set a cookie on my browser that will look like:
+     * qwsldfhsouadfnbousdnfasojdnfodsfasdf* like a signed(encrypted) version of the key
+     * *
+     * when user makes a request
+     * qwsldfhsouadfnbousdnfasojdnfodsfasdf *  gets sent to the server (bc it contains our user info)
+     *
+     * * *
+     * on the server it will unsign (decrypt) it
+     * turn this: qwsldfhsouadfnbousdnfasojdnfodsfasdf -> into this sess:qweokdfsdfscvih
+     *
+     * * *
+     * server will make a request to redis to look up that key:*
+     * sess:qweokdfsdfscvih*
+     *
+     * * *
+     * obtain value for that key*
+     * value:{cookie:..., userId:1}
+     * now the browser knows who I am! (userId)
+     * * * * * */
     return { user };
   }
 
   @Mutation(() => UserResponse)
   async login(
     @Arg("options") options: UsernamePasswordInput,
-    @Ctx() { em }: MyContext
+    @Ctx() { em, req }: MyContext
   ): Promise<UserResponse> {
     const user = await em.findOne(User, { username: options.username });
     if (!user) {
@@ -115,6 +156,8 @@ export class UserResolver {
         ],
       };
     }
+
+    req.session.userId = user.id;
     return {
       user,
     };
