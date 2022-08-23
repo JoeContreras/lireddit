@@ -50,7 +50,7 @@ const main = async () => {
             sameSite: "lax",
             secure: constants_1.__prod__,
         },
-        name: "qid",
+        name: constants_1.COOKIE_NAME,
         secret: "keyboard cat",
         resave: false,
     }));

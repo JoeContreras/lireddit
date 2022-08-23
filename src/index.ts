@@ -9,7 +9,7 @@ import { UserResolver } from "./resolvers/user";
 import { createClient } from "redis";
 import session from "express-session";
 import connectRedis from "connect-redis";
-import { __prod__ } from "./constants";
+import { __prod__, COOKIE_NAME } from "./constants";
 import { MyContext } from "./types";
 import cors from "cors";
 
@@ -53,7 +53,7 @@ const main = async () => {
         sameSite: "lax",
         secure: __prod__, //https only when in production
       },
-      name: "qid",
+      name: COOKIE_NAME,
       secret: "keyboard cat",
       resave: false,
     })
