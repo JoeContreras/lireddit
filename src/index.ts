@@ -11,6 +11,7 @@ import session from "express-session";
 import connectRedis from "connect-redis";
 import { __prod__ } from "./constants";
 import { MyContext } from "./types";
+import cors from "cors";
 
 const main = async () => {
   const orm = await MikroORM.init(mikroConfig);
@@ -24,6 +25,12 @@ const main = async () => {
   app.set("Access-Control-Allow-Credentials", true);
   !__prod__ && app.set("trust proxy", 1);
 
+  app.use(
+    cors({
+      origin: ["http://localhost:3000", "https://studio.apollographql.com"],
+      credentials: true,
+    })
+  );
   // redis@v4
   const RedisStore = connectRedis(session);
   const redisClient = createClient({
@@ -43,8 +50,8 @@ const main = async () => {
       cookie: {
         maxAge: 1000 * 60 * 24 * 365 * 1, //1 year
         httpOnly: true,
-        sameSite: "none",
-        secure: true, //https only when in production
+        sameSite: "lax",
+        secure: __prod__, //https only when in production
       },
       name: "qid",
       secret: "keyboard cat",

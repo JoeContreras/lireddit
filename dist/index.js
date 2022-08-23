@@ -15,6 +15,7 @@ const redis_1 = require("redis");
 const express_session_1 = __importDefault(require("express-session"));
 const connect_redis_1 = __importDefault(require("connect-redis"));
 const constants_1 = require("./constants");
+const cors_1 = __importDefault(require("cors"));
 const main = async () => {
     const orm = await core_1.MikroORM.init(mikro_orm_config_1.default);
     orm.getMigrator().up();
@@ -25,6 +26,10 @@ const main = async () => {
     app.set("Access-Control-Allow-Origin", "https://studio.apollographql.com");
     app.set("Access-Control-Allow-Credentials", true);
     !constants_1.__prod__ && app.set("trust proxy", 1);
+    app.use((0, cors_1.default)({
+        origin: ["http://localhost:3000", "https://studio.apollographql.com"],
+        credentials: true,
+    }));
     const RedisStore = (0, connect_redis_1.default)(express_session_1.default);
     const redisClient = (0, redis_1.createClient)({
         socket: {
@@ -42,8 +47,8 @@ const main = async () => {
         cookie: {
             maxAge: 1000 * 60 * 24 * 365 * 1,
             httpOnly: true,
-            sameSite: "none",
-            secure: true,
+            sameSite: "lax",
+            secure: constants_1.__prod__,
         },
         name: "qid",
         secret: "keyboard cat",
