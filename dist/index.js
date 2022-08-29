@@ -11,7 +11,7 @@ const type_graphql_1 = require("type-graphql");
 const hello_1 = require("./resolvers/hello");
 const post_1 = require("./resolvers/post");
 const user_1 = require("./resolvers/user");
-const redis_1 = require("redis");
+const ioredis_1 = __importDefault(require("ioredis"));
 const express_session_1 = __importDefault(require("express-session"));
 const connect_redis_1 = __importDefault(require("connect-redis"));
 const constants_1 = require("./constants");
@@ -31,16 +31,12 @@ const main = async () => {
         credentials: true,
     }));
     const RedisStore = (0, connect_redis_1.default)(express_session_1.default);
-    const redisClient = (0, redis_1.createClient)({
-        socket: {
-            host: "redis-14306.c114.us-east-1-4.ec2.cloud.redislabs.com",
-            port: 14306,
-        },
+    const redisClient = new ioredis_1.default({
+        host: "redis-14306.c114.us-east-1-4.ec2.cloud.redislabs.com",
+        port: 14306,
         username: "joec",
         password: "Andy1209.",
-        legacyMode: true,
     });
-    redisClient.connect().catch(console.error);
     app.use((0, express_session_1.default)({
         saveUninitialized: false,
         store: new RedisStore({ client: redisClient }),
@@ -59,7 +55,12 @@ const main = async () => {
             resolvers: [hello_1.HelloResolver, post_1.PostResolver, user_1.UserResolver],
             validate: false,
         }),
-        context: ({ req, res }) => ({ em: orm.em.fork(), req, res }),
+        context: ({ req, res }) => ({
+            em: orm.em.fork(),
+            req,
+            res,
+            redisClient,
+        }),
     });
     await apolloServer.start();
     apolloServer.applyMiddleware({

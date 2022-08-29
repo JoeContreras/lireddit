@@ -6,7 +6,7 @@ import { buildSchema } from "type-graphql";
 import { HelloResolver } from "./resolvers/hello";
 import { PostResolver } from "./resolvers/post";
 import { UserResolver } from "./resolvers/user";
-import { createClient } from "redis";
+import Redis from "ioredis";
 import session from "express-session";
 import connectRedis from "connect-redis";
 import { __prod__, COOKIE_NAME } from "./constants";
@@ -15,6 +15,7 @@ import cors from "cors";
 
 const main = async () => {
   const orm = await MikroORM.init(mikroConfig);
+  // await orm.em.fork().nativeDelete(User, {});
   orm.getMigrator().up();
   const generator = orm.getSchemaGenerator();
   await generator.updateSchema();
@@ -33,16 +34,22 @@ const main = async () => {
   );
   // redis@v4
   const RedisStore = connectRedis(session);
-  const redisClient = createClient({
-    socket: {
-      host: "redis-14306.c114.us-east-1-4.ec2.cloud.redislabs.com",
-      port: 14306,
-    },
+  const redisClient = new Redis({
+    host: "redis-14306.c114.us-east-1-4.ec2.cloud.redislabs.com",
+    port: 14306,
     username: "joec",
     password: "Andy1209.",
-    legacyMode: true,
   });
-  redisClient.connect().catch(console.error);
+  /*
+  const redisClient = new Redis(
+    14306,
+    "redis-14306.c114.us-east-1-4.ec2.cloud.redislabs.com",
+    {
+      username: "joec",
+      password: "Andy1209.",
+    }
+  );
+*/
   app.use(
     session({
       saveUninitialized: false,
@@ -64,7 +71,12 @@ const main = async () => {
       resolvers: [HelloResolver, PostResolver, UserResolver],
       validate: false,
     }),
-    context: ({ req, res }): MyContext => ({ em: orm.em.fork(), req, res }),
+    context: ({ req, res }): MyContext => ({
+      em: orm.em.fork(),
+      req,
+      res,
+      redisClient,
+    }),
   });
   await apolloServer.start();
 
