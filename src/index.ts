@@ -1,6 +1,5 @@
-import { MikroORM } from "@mikro-orm/core";
+import "reflect-metadata";
 import express from "express";
-import mikroConfig from "./mikro-orm.config";
 import { ApolloServer } from "apollo-server-express";
 import { buildSchema } from "type-graphql";
 import { HelloResolver } from "./resolvers/hello";
@@ -12,13 +11,25 @@ import connectRedis from "connect-redis";
 import { __prod__, COOKIE_NAME } from "./constants";
 import { MyContext } from "./types";
 import cors from "cors";
+import { myDataSource } from "./app-data-source";
 
 const main = async () => {
+  // establish database connection
+  myDataSource
+    .initialize()
+    .then(() => {
+      console.log("Data Source has been initialized!");
+    })
+    .catch((err) => {
+      console.error("Error during Data Source initialization:", err);
+    });
+  /*
   const orm = await MikroORM.init(mikroConfig);
   // await orm.em.fork().nativeDelete(User, {});
   orm.getMigrator().up();
   const generator = orm.getSchemaGenerator();
   await generator.updateSchema();
+*/
   const app = express();
 
   app.set("trust proxy", !__prod__);
@@ -72,7 +83,6 @@ const main = async () => {
       validate: false,
     }),
     context: ({ req, res }): MyContext => ({
-      em: orm.em.fork(),
       req,
       res,
       redisClient,

@@ -10,7 +10,6 @@ import {
 } from "type-graphql";
 import { User } from "../entities/User";
 import argon2 from "argon2";
-import { EntityManager } from "@mikro-orm/postgresql";
 import { COOKIE_NAME, FORGET_PASSWORD_PREFIX } from "../constants";
 import { UsernamePasswordInput } from "./UsernamePasswordInput";
 import { validateRegister } from "../utils/validations";
@@ -41,7 +40,7 @@ export class UserResolver {
   async changePassword(
     @Arg("token") token: string,
     @Arg("newPassword") newPassword: string,
-    @Ctx() { redisClient, em, req }: MyContext
+    @Ctx() { redisClient, req }: MyContext
   ): Promise<UserResponse> {
     if (newPassword.length <= 6) {
       return {
@@ -65,7 +64,8 @@ export class UserResolver {
       };
     }
     //    parseInt because redis stores it as string
-    const user = await em.findOne(User, { id: parseInt(userId) });
+    const userIdNum = parseInt(userId);
+    const user = await User.findOneBy({ id: userIdNum });
     if (!user) {
       return {
         errors: [
@@ -77,8 +77,10 @@ export class UserResolver {
       };
     }
     const key = FORGET_PASSWORD_PREFIX + token;
-    user.password = await argon2.hash(newPassword);
-    await em.flush();
+    await User.update(
+      { id: userIdNum },
+      { password: await argon2.hash(newPassword) }
+    );
     await redisClient.del(key);
     //Login user after password change
     req.session.userId = user.id;
@@ -87,9 +89,9 @@ export class UserResolver {
   @Mutation(() => Boolean)
   async forgotPassword(
     @Arg("email") email: string,
-    @Ctx() { em, redisClient }: MyContext
+    @Ctx() { redisClient }: MyContext
   ) {
-    const user = await em.findOne(User, { email });
+    const user = await User.findOneBy({ email });
     if (!user) {
       return true;
     }
@@ -105,18 +107,17 @@ export class UserResolver {
     return true;
   }
   @Query(() => User, { nullable: true })
-  async me(@Ctx() { req, em }: MyContext) {
+  me(@Ctx() { req }: MyContext) {
     //  You are not logged in
     if (!req.session.userId) {
       return null;
     }
-    const user = await em.findOne(User, { id: req.session.userId });
-    return user;
+    return User.findOneBy({ id: req.session.userId });
   }
   @Mutation(() => UserResponse)
   async register(
     @Arg("options") options: UsernamePasswordInput,
-    @Ctx() { em, req }: MyContext
+    @Ctx() { req }: MyContext
   ): Promise<UserResponse> {
     const errors = validateRegister(options);
     if (errors) {
@@ -129,24 +130,39 @@ export class UserResolver {
       password: hashedPassword,
     });
 */
+
     let user;
     try {
-      const result = await (em as EntityManager)
-        .createQueryBuilder(User)
-        .getKnexQuery()
-        .insert({
+      user = await User.create({
+        username: options.username,
+        email: options.email,
+        password: hashedPassword,
+      }).save();
+      //Store userId session
+      //this will set a cookie on the user to keep the logged in
+      req.session.userId = user.id;
+      // with queryBuilder
+      /*
+      const result = await myDataSource
+        .createQueryBuilder()
+        .insert()
+        .into(User)
+        .values({
           username: options.username,
           email: options.email,
           password: hashedPassword,
-          created_at: new Date(),
-          updated_at: new Date(),
         })
-        .returning("*");
-      user = result[0];
-      // await em.persistAndFlush(user);
+        .returning("*")
+        .execute();
+      user = result.raw[0];
+*/
     } catch (e) {
+      console.log("err: ", e);
       // duplicate username error
-      if (e.detail.includes("already exists")) {
+      if (
+        e.detail.includes("already exists") &&
+        e.detail.includes("username")
+      ) {
         return {
           errors: [
             {
@@ -155,12 +171,21 @@ export class UserResolver {
             },
           ],
         };
+      } else if (
+        e.detail.includes("already exists") &&
+        e.detail.includes("email")
+      ) {
+        return {
+          errors: [
+            {
+              field: "email",
+              message: "Email already exists",
+            },
+          ],
+        };
       }
     }
 
-    //Store userId session
-    //this will set a cookie on the user to keep the logged in
-    req.session.userId = user.id;
     /*
      * {userId: 1} -> send that to redis
      * * *
@@ -195,10 +220,9 @@ export class UserResolver {
   async login(
     @Arg("usernameOrEmail") usernameOrEmail: string,
     @Arg("password") password: string,
-    @Ctx() { em, req }: MyContext
+    @Ctx() { req }: MyContext
   ): Promise<UserResponse> {
-    const user = await em.findOne(
-      User,
+    const user = await User.findOneBy(
       usernameOrEmail.includes("@")
         ? { email: usernameOrEmail }
         : { username: usernameOrEmail }
