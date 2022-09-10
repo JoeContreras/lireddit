@@ -19,6 +19,7 @@ const main = async () => {
     .initialize()
     .then(() => {
       console.log("Data Source has been initialized!");
+      // conn.runMigrations();
     })
     .catch((err) => {
       console.error("Error during Data Source initialization:", err);
