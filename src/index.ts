@@ -14,6 +14,7 @@ import cors from "cors";
 import { myDataSource } from "./app-data-source";
 import { createUserLoader } from "./utils/createUserLoader";
 import { createUpdootLoader } from "./utils/createUpdootLoader";
+import "dotenv-safe/config";
 
 const main = async () => {
   // establish database connection
@@ -42,12 +43,7 @@ const main = async () => {
   );
   // redis@v4
   const RedisStore = connectRedis(session);
-  const redisClient = new Redis({
-    host: "redis-14306.c114.us-east-1-4.ec2.cloud.redislabs.com",
-    port: 14306,
-    username: "joec",
-    password: "Andy1209.",
-  });
+  const redisClient = new Redis(process.env.REDIS_URL);
 
   app.use(
     session({
@@ -88,7 +84,7 @@ const main = async () => {
     },
   });
 
-  app.listen(4000, () => {
+  app.listen(process.env.PORT, () => {
     console.log("Server listening on port 4000");
   });
   // const emFork = orm.em.fork();
