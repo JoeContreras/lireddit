@@ -12,6 +12,8 @@ import { __prod__, COOKIE_NAME } from "./constants";
 import { MyContext } from "./types";
 import cors from "cors";
 import { myDataSource } from "./app-data-source";
+import { createUserLoader } from "./utils/createUserLoader";
+import { createUpdootLoader } from "./utils/createUpdootLoader";
 
 const main = async () => {
   // establish database connection
@@ -24,13 +26,7 @@ const main = async () => {
     .catch((err) => {
       console.error("Error during Data Source initialization:", err);
     });
-  /*
-  const orm = await MikroORM.init(mikroConfig);
-  // await orm.em.fork().nativeDelete(User, {});
-  orm.getMigrator().up();
-  const generator = orm.getSchemaGenerator();
-  await generator.updateSchema();
-*/
+
   const app = express();
 
   app.set("trust proxy", !__prod__);
@@ -52,16 +48,7 @@ const main = async () => {
     username: "joec",
     password: "Andy1209.",
   });
-  /*
-  const redisClient = new Redis(
-    14306,
-    "redis-14306.c114.us-east-1-4.ec2.cloud.redislabs.com",
-    {
-      username: "joec",
-      password: "Andy1209.",
-    }
-  );
-*/
+
   app.use(
     session({
       saveUninitialized: false,
@@ -87,6 +74,8 @@ const main = async () => {
       req,
       res,
       redisClient,
+      userLoader: createUserLoader(),
+      updootLoader: createUpdootLoader(),
     }),
   });
   await apolloServer.start();
