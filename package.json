@@ -8,7 +8,7 @@
     "start2": "ts-node dist/index.js",
     "dev": "nodemon dist/index.js",
     "watch": "tsc -w",
-    "build": "tsc"
+    "build": "yarn install && tsc"
   },
   "devDependencies": {
     "@types/connect-redis": "^0.0.18",
