@@ -16,6 +16,7 @@ import { Post } from "../entities/Post";
 import { MyContext } from "../types";
 import { isAuth } from "../middleware/isAuth";
 import { myDataSource } from "../app-data-source";
+import { Updoot } from "../entities/Updoot";
 
 @InputType()
 class PostInput {
@@ -52,47 +53,86 @@ export class PostResolver {
     const isUpdoot = value !== -1;
     const valueToUse = isUpdoot ? 1 : -1;
     const { userId } = req.session;
-    /*
-    await Updoot.insert({
-      userId,
-      postId,
-      value: valueToUse,
-    });
-*/
+    const updoot = await Updoot.findOneBy({ postId, userId });
     //Do it with transaction so if one fails, the other one will not be executed
-    await myDataSource.query(
-      `
-    START TRANSACTION;
-    insert into updoot ("userId", "postId", value)
-    values (${userId}, ${postId}, ${valueToUse});
-    update post 
-    set points = points + ${valueToUse}
-    where id = ${postId};
-    COMMIT;
-    `
-    );
+
+    // the user has voted on the post before
+    // and they are changing their vote
+    if (updoot && updoot.value !== valueToUse) {
+      await myDataSource.transaction(async (tm) => {
+        await tm.query(
+          `
+                    UPDATE updoot
+                    SET value = $1
+                    WHERE "postId" = $2 AND "userId" = $3
+                    `,
+          [valueToUse, postId, userId]
+        );
+        await tm.query(
+          `
+                    UPDATE post
+                    SET points = points + $1
+                    WHERE id = $2
+                    `,
+          [2 * valueToUse, postId]
+        );
+      });
+    } else if (!updoot) {
+      // never voted before
+      await myDataSource.transaction(async (tm) => {
+        await tm.query(
+          `
+                    INSERT INTO updoot ("userId", "postId", value)
+                    VALUES ($1, $2, $3)
+                `,
+          [userId, postId, valueToUse]
+        );
+
+        await tm.query(
+          `
+                    UPDATE post
+                    SET points = points + $1
+                    WHERE id = $2
+                `,
+          [valueToUse, postId]
+        );
+      });
+    }
+
     return true;
   }
   @Query(() => PaginatedPosts)
   async posts(
     @Arg("limit", () => Int) limit: number,
-    @Arg("cursor", () => String, { nullable: true }) cursor: string | null
+    @Arg("cursor", () => String, { nullable: true }) cursor: string | null,
+    @Ctx() { req }: MyContext
   ): Promise<PaginatedPosts> {
     const realLimit = Math.min(50, limit);
     const realLimitPlusOne = Math.min(50, limit) + 1;
     const replacements: any[] = [realLimitPlusOne];
 
+    if (req.session.userId) {
+      replacements.push(req.session.userId);
+    }
+
+    let cursorIndex = 3;
     if (cursor) {
       replacements.push(new Date(parseInt(cursor)));
+      cursorIndex = replacements.length;
     }
 
     const posts = await myDataSource.query(
       `
     select p.* ,
-    jsonb_build_object('id', u.id, 'username', u.username, 'email', u.email, 'createdAt', u."createdAt", 'updatedAt', u."updatedAt") creator
+    jsonb_build_object('id', u.id, 'username', u.username, 'email', u.email, 'createdAt', u."createdAt", 'updatedAt', u."updatedAt") creator,
+    ${
+      req.session.userId
+        ? '(SELECT value FROM updoot WHERE "userId" = $2 AND "postId" = p.id) "voteStatus"'
+        : 'null as "voteStatus"'
+    }
      from post p
     inner join public.user u on u.id = p."creatorId"
-    ${cursor ? `where p."createdAt" < $2` : ""}
+    ${cursor ? `where p."createdAt" < $${cursorIndex}` : ""}
     order by p."createdAt" DESC
     limit $1
     `,
@@ -118,8 +158,8 @@ export class PostResolver {
   }
 
   @Query(() => Post, { nullable: true })
-  post(@Arg("id") id: number): Promise<Post | null> {
-    return Post.findOneBy({ id: id });
+  post(@Arg("id", () => Int) id: number): Promise<Post | null> {
+    return Post.findOne({ where: { id }, relations: ["creator"] });
   }
 
   @Mutation(() => Post)
@@ -134,24 +174,33 @@ export class PostResolver {
   @Mutation(() => Post, { nullable: true })
   @UseMiddleware(isAuth)
   async updatePost(
-    @Arg("id") id: number,
-    @Arg("title", () => String, { nullable: true }) title: string
+    @Arg("id", () => Int) id: number,
+    @Arg("title") title: string,
+    @Arg("text") text: string,
+    @Ctx() { req }: MyContext
   ): Promise<Post | null> {
-    const post = await Post.findOneBy({ id });
-    if (!post) {
-      return null;
-    }
-    if (typeof title !== "undefined") {
-      await Post.update({ id }, { title });
-    }
-    return post;
+    const result = await myDataSource
+      .createQueryBuilder()
+      .update(Post)
+      .set({ title, text })
+      .where('id = :id and "creatorId" = :creatorId', {
+        id,
+        creatorId: req.session.userId,
+      })
+      .returning("*")
+      .execute();
+
+    return result.raw[0];
   }
 
   @Mutation(() => Boolean)
   @UseMiddleware(isAuth)
-  async deletePost(@Arg("id") id: number): Promise<Boolean> {
+  async deletePost(
+    @Arg("id", () => Int) id: number,
+    @Ctx() { req }: MyContext
+  ): Promise<boolean> {
     try {
-      await Post.delete(id);
+      await Post.delete({ id: id, creatorId: req.session.userId });
       return true;
     } catch (e) {
       console.log(e);
