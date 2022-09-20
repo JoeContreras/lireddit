@@ -31,7 +31,10 @@ const main = async () => {
   const app = express();
 
   app.set("trust proxy", !__prod__);
-  app.set("Access-Control-Allow-Origin", "https://studio.apollographql.com");
+  app.set(
+    "Access-Control-Allow-Origin",
+    "https://lireddit-51ma2ff8o-joecontreras.vercel.app"
+  );
   app.set("Access-Control-Allow-Credentials", true);
   !__prod__ && app.set("trust proxy", 1);
 
