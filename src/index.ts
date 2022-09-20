@@ -37,7 +37,11 @@ const main = async () => {
 
   app.use(
     cors({
-      origin: ["http://localhost:3000", "https://studio.apollographql.com"],
+      origin: [
+        "http://localhost:3000",
+        "https://studio.apollographql.com",
+        "https://lireddit-51ma2ff8o-joecontreras.vercel.app",
+      ],
       credentials: true,
     })
   );
@@ -79,7 +83,11 @@ const main = async () => {
   apolloServer.applyMiddleware({
     app,
     cors: {
-      origin: ["http://localhost:3000", "https://studio.apollographql.com"],
+      origin: [
+        "http://localhost:3000",
+        "https://studio.apollographql.com",
+        "https://lireddit-51ma2ff8o-joecontreras.vercel.app",
+      ],
       credentials: true,
     },
   });
