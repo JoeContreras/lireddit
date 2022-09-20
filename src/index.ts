@@ -10,7 +10,7 @@ import session from "express-session";
 import connectRedis from "connect-redis";
 import { __prod__, COOKIE_NAME } from "./constants";
 import { MyContext } from "./types";
-import cors from "cors";
+// import cors from "cors";
 import { myDataSource } from "./app-data-source";
 import { createUserLoader } from "./utils/createUserLoader";
 import { createUpdootLoader } from "./utils/createUpdootLoader";
@@ -30,6 +30,7 @@ const main = async () => {
 
   const app = express();
 
+  /*
   app.set("trust proxy", !__prod__);
   app.set(
     "Access-Control-Allow-Origin",
@@ -48,6 +49,7 @@ const main = async () => {
       credentials: true,
     })
   );
+*/
   // redis@v4
   const RedisStore = connectRedis(session);
   const redisClient = new Redis(process.env.REDIS_URL);
@@ -67,6 +69,10 @@ const main = async () => {
       resave: false,
     })
   );
+
+  if (__prod__) {
+    console.log("Running in production mode");
+  }
 
   const apolloServer = new ApolloServer({
     schema: await buildSchema({
@@ -96,7 +102,7 @@ const main = async () => {
   });
 
   app.listen(process.env.PORT, () => {
-    console.log("Server listening on port 4000");
+    console.log("Server listening on port :" + process.env.PORT);
   });
   // const emFork = orm.em.fork();
   // const post = emFork.create(Post, { title: "my first post" });
