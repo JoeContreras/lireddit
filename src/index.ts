@@ -61,6 +61,7 @@ const main = async () => {
       cookie: {
         maxAge: 1000 * 60 * 24 * 365 * 1, //1 year
         httpOnly: true,
+        sameSite: "lax", //csrf
         secure: __prod__, //https only when in production
       },
       name: COOKIE_NAME,
