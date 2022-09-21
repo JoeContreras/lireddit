@@ -61,11 +61,12 @@ const main = async () => {
       cookie: {
         maxAge: 1000 * 60 * 24 * 365 * 1, //1 year
         httpOnly: true,
-        sameSite: "lax", //csrf
+        sameSite: "strict", //csrf
         secure: __prod__, //https only when in production
+        domain: __prod__ ? "https://lireddit-web-wheat.vercel.app" : undefined,
       },
       name: COOKIE_NAME,
-      secret: "keyboard cat",
+      secret: process.env.SESSION_SECRET as string,
       resave: false,
     })
   );
@@ -95,7 +96,7 @@ const main = async () => {
       origin: [
         "http://localhost:3000",
         "https://studio.apollographql.com",
-        "https://lireddit-51ma2ff8o-joecontreras.vercel.app",
+        "https://lireddit-web-wheat.vercel.app",
       ],
       credentials: true,
     },

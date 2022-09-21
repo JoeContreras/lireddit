@@ -8,7 +8,8 @@
     "start2": "ts-node dist/index.js",
     "dev": "nodemon dist/index.js",
     "watch": "tsc -w",
-    "build": "yarn install && tsc"
+    "build": "yarn install && tsc",
+    "gen-env": "npx gen-env-types .env -o src/types/env.d.ts -e ."
   },
   "devDependencies": {
     "@types/connect-redis": "^0.0.18",
