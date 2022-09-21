@@ -59,7 +59,7 @@ const main = async () => {
         httpOnly: true,
         sameSite: "strict", //csrf
         secure: __prod__, //https only when in production
-        domain: __prod__ ? "lireddit-web-wheat.vercel.app" : undefined,
+        domain: __prod__ ? ".vercel.app" : undefined,
       },
       name: COOKIE_NAME,
       secret: process.env.SESSION_SECRET as string,
