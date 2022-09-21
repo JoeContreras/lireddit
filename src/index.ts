@@ -34,7 +34,7 @@ const main = async () => {
   app.set("trust proxy", !__prod__);
   app.set("Access-Control-Allow-Origin", "*");
   app.set("Access-Control-Allow-Credentials", true);
-  !__prod__ && app.set("trust proxy", 1);
+  !__prod__ && app.set("proxy", 1);
 
   app.use(
     cors({
@@ -59,7 +59,7 @@ const main = async () => {
         httpOnly: true,
         sameSite: "strict", //csrf
         secure: __prod__, //https only when in production
-        domain: __prod__ ? "https://lireddit-web-wheat.vercel.app" : undefined,
+        domain: __prod__ ? "lireddit-web-wheat.vercel.app" : undefined,
       },
       name: COOKIE_NAME,
       secret: process.env.SESSION_SECRET as string,
