@@ -15,6 +15,7 @@ import { myDataSource } from "./app-data-source";
 import { createUserLoader } from "./utils/createUserLoader";
 import { createUpdootLoader } from "./utils/createUpdootLoader";
 import "dotenv-safe/config";
+import cors from "cors";
 
 const main = async () => {
   // establish database connection
@@ -30,11 +31,10 @@ const main = async () => {
 
   const app = express();
 
-  /*
   app.set("trust proxy", !__prod__);
   app.set(
     "Access-Control-Allow-Origin",
-    "https://lireddit-51ma2ff8o-joecontreras.vercel.app"
+    "https://lireddit-web-wheat.vercel.app"
   );
   app.set("Access-Control-Allow-Credentials", true);
   !__prod__ && app.set("trust proxy", 1);
@@ -44,12 +44,11 @@ const main = async () => {
       origin: [
         "http://localhost:3000",
         "https://studio.apollographql.com",
-        "https://lireddit-51ma2ff8o-joecontreras.vercel.app",
+        "https://lireddit-web-wheat.vercel.app",
       ],
       credentials: true,
     })
   );
-*/
   // redis@v4
   const RedisStore = connectRedis(session);
   const redisClient = new Redis(process.env.REDIS_URL);
@@ -61,7 +60,7 @@ const main = async () => {
       cookie: {
         maxAge: 1000 * 60 * 24 * 365 * 1, //1 year
         httpOnly: true,
-        sameSite: "strict", //csrf
+        sameSite: "none", //csrf
         secure: __prod__, //https only when in production
         domain: __prod__ ? "https://lireddit-web-wheat.vercel.app" : undefined,
       },
