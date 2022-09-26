@@ -41,7 +41,7 @@ const main = async () => {
       origin: [
         "http://localhost:3000",
         "https://studio.apollographql.com",
-        "https://lireddit-web-wheat.vercel.app",
+        "https://www.jce-projects.com/",
       ],
       credentials: true,
     })
@@ -92,7 +92,7 @@ const main = async () => {
       origin: [
         "http://localhost:3000",
         "https://studio.apollographql.com",
-        "https://lireddit-web-wheat.vercel.app",
+        "https://www.jce-projects.com",
       ],
       credentials: true,
     },
