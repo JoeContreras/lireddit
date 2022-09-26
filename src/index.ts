@@ -57,9 +57,9 @@ const main = async () => {
       cookie: {
         maxAge: 1000 * 60 * 24 * 365 * 1, //1 year
         httpOnly: true,
-        sameSite: "none", //csrf
+        sameSite: __prod__ ? "none" : "lax",
         secure: __prod__, //https only when in production
-        domain: __prod__ ? ".vercel.app" : undefined,
+        domain: __prod__ ? ".jce-projects.com" : undefined,
       },
       name: COOKIE_NAME,
       secret: process.env.SESSION_SECRET as string,
