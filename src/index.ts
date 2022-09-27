@@ -32,7 +32,7 @@ const main = async () => {
   const app = express();
 
   app.set("trust proxy", !__prod__);
-  app.set("Access-Control-Allow-Origin", "*");
+  app.set("Access-Control-Allow-Origin", "https://www.jce-projects.com");
   app.set("Access-Control-Allow-Credentials", true);
   !__prod__ && app.set("trust proxy", 1);
 
