@@ -32,24 +32,24 @@ const main = async () => {
   const app = express();
 
   app.set("trust proxy", !__prod__);
-  app.set("Access-Control-Allow-Origin", "https://www.jce-projects.com/");
+  app.set("Access-Control-Allow-Origin", "https://www.jce-projects.com");
   app.set("Access-Control-Allow-Origin", "https://jce-projects.com");
+  app.set("Access-Control-Allow-Origin", "https://www.jce-projects.com/");
+  app.set("Access-Control-Allow-Origin", "https://jce-projects.com/");
   app.set("Access-Control-Allow-Credentials", true);
-  !__prod__ && app.set("trust proxy", 1);
+  // !__prod__ && app.set("trust proxy", 1);
 
-  app.use(cors());
-  /*
   app.use(
     cors({
       origin: [
         "http://localhost:3000",
         "https://studio.apollographql.com",
         "https://www.jce-projects.com/",
+        "https://jce-projects.com/",
       ],
       credentials: true,
     })
   );
-*/
   // redis@v4
   const RedisStore = connectRedis(session);
   const redisClient = new Redis(process.env.REDIS_URL);
@@ -98,6 +98,8 @@ const main = async () => {
         "https://studio.apollographql.com",
         "https://www.jce-projects.com/",
         "https://jce-projects.com/",
+        "https://www.jce-projects.com",
+        "https://jce-projects.com",
       ],
       credentials: true,
     },
